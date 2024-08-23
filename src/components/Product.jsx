@@ -1,3 +1,5 @@
+import { HiUser } from 'react-icons/hi';
+
 export default function Product(props) {
   const price = 999;
   const url =
@@ -5,6 +7,7 @@ export default function Product(props) {
 
   return (
     <div>
+      <HiUser size="24" color="red" />
       <h2>Tacos</h2>
       <img src={url} alt="Tacos With Lime" width="340" />
       <p>Price: {price} credits</p>
