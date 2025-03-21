@@ -137,7 +137,7 @@ const StarEater = () => {
   };
 
   return (
-    <div style={{ background: '#000', color: '#fff', padding: '10px' }}>
+    <div style={{ background: '#000', color: '#fff', padding: '15px' }}>
       <h2>Пожиратель звёзд</h2>
       <p>Токены: {gameState.tokens}</p>
       <Stage
@@ -146,7 +146,7 @@ const StarEater = () => {
         onTouchMove={handleMove}
         onMouseMove={handleMove}
         ref={stageRef}
-        style={{ border: '1px solid white' }}
+        style={{ border: '1px solid transparent' }}
       >
         <Layer ref={layerRef}>
           <Ring
@@ -183,9 +183,11 @@ const StarEater = () => {
               x={coin.x}
               y={coin.y}
               radius={coin.radius}
-              fill="yellow"
-              shadowBlur={15}
-              shadowColor="yellow"
+              stroke="yellow"
+              strokeWidth={2}
+              fill="#FFFF00" // Ярко-желтый цвет
+              shadowBlur={18} // Увеличенная тень
+              shadowColor="#FFFF33" // Еще более яркий желтый для тени
             />
           ))}
         </Layer>
