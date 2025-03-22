@@ -1,131 +1,111 @@
 import { useEffect, useRef } from 'react';
-import Konva from 'konva';
 
 const StarEater = () => {
-  const containerRef = useRef(null);
-  const stageRef = useRef(null);
-  const layerRef = useRef(null);
-  const blackHoleRef = useRef(null);
-  const tokensRef = useRef(0);
+  const canvasRef = useRef(null);
+  const blackHoleRef = useRef({ x: 300, y: 400, radius: 20 });
   const coinsRef = useRef([]);
+  const tokensRef = useRef(0);
   const lastPosRef = useRef({ x: 0, y: 0 });
 
   useEffect(() => {
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext('2d');
     const width = Math.min(window.innerWidth - 20, 600);
     const height = Math.min(width * (4 / 3), 800);
+    canvas.width = width;
+    canvas.height = height;
 
-    const stage = new Konva.Stage({
-      container: containerRef.current,
-      width,
-      height,
-    });
-    stageRef.current = stage;
+    blackHoleRef.current.x = width / 2;
+    blackHoleRef.current.y = height / 2;
+    lastPosRef.current = { x: width / 2, y: height / 2 };
 
-    const layer = new Konva.Layer({ hitGraphEnabled: false }); // Отключаем hit graph для скорости
-    layerRef.current = layer;
-    stage.add(layer);
+    const handleMove = (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const x = e.clientX - rect.left || e.touches[0].clientX - rect.left;
+      const y = e.clientY - rect.top || e.touches[0].clientY - rect.top;
+      lastPosRef.current = { x, y };
+    };
 
-    // Черная дыра
-    const blackHole = new Konva.Circle({
-      x: width / 2,
-      y: height / 2,
-      radius: 20,
-      fill: 'black',
-      stroke: 'white',
-      strokeWidth: 1,
-      shadowBlur: 10, // Уменьшено для производительности
-      shadowColor: 'rgba(255, 255, 255, 0.5)',
-      listening: false, // Отключаем события
-    });
-    blackHoleRef.current = blackHole;
-    layer.add(blackHole);
+    canvas.addEventListener('mousemove', handleMove);
+    canvas.addEventListener('touchmove', handleMove);
 
-    // Текст для токенов
-    const tokensText = new Konva.Text({
-      x: 10,
-      y: 10,
-      text: 'Токены: 0',
-      fontSize: 20,
-      fill: 'white',
-      listening: false,
-    });
-    layer.add(tokensText);
-
-    // Обработка движения с интерполяцией
-    stage.on('mousemove touchmove', (e) => {
-      const pos = stage.getPointerPosition();
-      if (pos) {
-        lastPosRef.current = { x: pos.x, y: pos.y };
-      }
-    });
-
-    // Игровой цикл
-    const anim = new Konva.Animation((frame) => {
+    const gameLoop = () => {
       const blackHole = blackHoleRef.current;
       const coins = coinsRef.current;
-      const timeDiff = frame.timeDiff / 1000; // Время между кадрами в секундах
 
       // Плавное движение черной дыры
       const targetX = Math.max(20, Math.min(width - 20, lastPosRef.current.x));
       const targetY = Math.max(20, Math.min(height - 20, lastPosRef.current.y));
-      const lerpFactor = 0.1; // Коэффициент интерполяции
-      blackHole.x(blackHole.x() + (targetX - blackHole.x()) * lerpFactor);
-      blackHole.y(blackHole.y() + (targetY - blackHole.y()) * lerpFactor);
+      blackHole.x += (targetX - blackHole.x) * 0.1;
+      blackHole.y += (targetY - blackHole.y) * 0.1;
 
       // Добавление монет
       if (coins.length < 5 && Math.random() < 0.05) {
-        const coin = new Konva.Circle({
+        coins.push({
           x: Math.random() * width,
           y: Math.random() * height,
           radius: 5,
-          fill: '#FFFF00',
-          stroke: 'yellow',
-          strokeWidth: 1,
-          shadowBlur: 5, // Уменьшено
-          shadowColor: '#FFFF33',
-          listening: false,
         });
-        coins.push(coin);
-        layer.add(coin);
       }
 
-      // Обработка столкновений
+      // Обработка столкновений и притяжения
       let tokensToAdd = 0;
       for (let i = coins.length - 1; i >= 0; i--) {
         const coin = coins[i];
-        const dx = blackHole.x() - coin.x();
-        const dy = blackHole.y() - coin.y();
+        const dx = blackHole.x - coin.x;
+        const dy = blackHole.y - coin.y;
         const distSquared = dx * dx + dy * dy;
-        const radiusSquared = blackHole.radius() * blackHole.radius();
 
-        // Плавное притяжение монет
-        if (distSquared < 10000) { // Радиус притяжения
+        if (distSquared < 10000) {
           const dist = Math.sqrt(distSquared);
-          coin.x(coin.x() + (dx / dist) * 2 * timeDiff * 60);
-          coin.y(coin.y() + (dy / dist) * 2 * timeDiff * 60);
+          coin.x += (dx / dist) * 0.5;
+          coin.y += (dy / dist) * 0.5;
         }
 
-        if (distSquared < radiusSquared) {
-          coin.destroy();
+        if (distSquared < blackHole.radius * blackHole.radius) {
           coins.splice(i, 1);
           tokensToAdd += 1;
         }
       }
 
       if (tokensToAdd > 0) {
-        blackHole.radius(blackHole.radius() + 0.5 * tokensToAdd);
+        blackHole.radius += 0.5 * tokensToAdd;
         tokensRef.current += tokensToAdd;
-        tokensText.text(`Токены: ${tokensRef.current}`);
       }
 
-      layer.batchDraw();
-    }, layer);
+      // Рендеринг
+      ctx.fillStyle = '#000';
+      ctx.fillRect(0, 0, width, height);
 
-    anim.start();
+      ctx.font = '20px Arial';
+      ctx.fillStyle = 'white';
+      ctx.fillText(`Токены: ${tokensRef.current}`, 10, 30);
+
+      ctx.beginPath();
+      ctx.arc(blackHole.x, blackHole.y, blackHole.radius, 0, Math.PI * 2);
+      ctx.fillStyle = 'black';
+      ctx.fill();
+      ctx.strokeStyle = 'white';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+
+      coins.forEach((coin) => {
+        ctx.beginPath();
+        ctx.arc(coin.x, coin.y, coin.radius, 0, Math.PI * 2);
+        ctx.fillStyle = '#FFFF00';
+        ctx.fill();
+        ctx.strokeStyle = 'yellow';
+        ctx.stroke();
+      });
+
+      requestAnimationFrame(gameLoop);
+    };
+
+    requestAnimationFrame(gameLoop);
 
     return () => {
-      anim.stop();
-      stage.destroy();
+      canvas.removeEventListener('mousemove', handleMove);
+      canvas.removeEventListener('touchmove', handleMove);
     };
   }, []);
 
@@ -136,18 +116,14 @@ const StarEater = () => {
       console.log('Tokens:', tokensRef.current);
     }
     tokensRef.current = 0;
-    blackHoleRef.current.radius(20);
-    blackHoleRef.current.x(stageRef.current.width() / 2);
-    blackHoleRef.current.y(stageRef.current.height() / 2);
-    coinsRef.current.forEach((coin) => coin.destroy());
+    blackHoleRef.current = { x: canvasRef.current.width / 2, y: canvasRef.current.height / 2, radius: 20 };
     coinsRef.current = [];
-    layerRef.current.batchDraw();
   };
 
   return (
     <div style={{ background: '#000', color: '#fff', padding: '15px' }}>
       <h2>Пожиратель звёзд</h2>
-      <div ref={containerRef} style={{ border: '1px solid white' }} />
+      <canvas ref={canvasRef} style={{ border: '1px solid white' }} />
       <button onClick={finishGame} style={{ marginTop: '10px' }}>
         Завершить раунд
       </button>
