@@ -20,14 +20,21 @@ const StarEater = () => {
     lastPosRef.current = { x: width / 2, y: height / 2 };
 
     const handleMove = (e) => {
+      e.preventDefault(); // Предотвращаем прокрутку страницы
       const rect = canvas.getBoundingClientRect();
-      const x = e.clientX - rect.left || e.touches[0].clientX - rect.left;
-      const y = e.clientY - rect.top || e.touches[0].clientY - rect.top;
+      let x, y;
+      if (e.type === 'mousemove') {
+        x = e.clientX - rect.left;
+        y = e.clientY - rect.top;
+      } else if (e.type === 'touchmove') {
+        x = e.touches[0].clientX - rect.left;
+        y = e.touches[0].clientY - rect.top;
+      }
       lastPosRef.current = { x, y };
     };
 
     canvas.addEventListener('mousemove', handleMove);
-    canvas.addEventListener('touchmove', handleMove);
+    canvas.addEventListener('touchmove', handleMove, { passive: false }); // passive: false для preventDefault
 
     const gameLoop = () => {
       const blackHole = blackHoleRef.current;
@@ -123,7 +130,10 @@ const StarEater = () => {
   return (
     <div style={{ background: '#000', color: '#fff', padding: '15px' }}>
       <h2>Пожиратель звёзд</h2>
-      <canvas ref={canvasRef} style={{ border: '1px solid white' }} />
+      <canvas
+        ref={canvasRef}
+        style={{ border: '1px solid white', touchAction: 'none' }} // Предотвращаем прокрутку через CSS
+      />
       <button onClick={finishGame} style={{ marginTop: '10px' }}>
         Завершить раунд
       </button>
