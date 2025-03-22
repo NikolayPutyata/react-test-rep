@@ -8,9 +8,9 @@ const StarEater = () => {
   const blackHoleRef = useRef(null);
   const tokensRef = useRef(0);
   const coinsRef = useRef([]);
+  const lastPosRef = useRef({ x: 0, y: 0 });
 
   useEffect(() => {
-    // Инициализация сцены
     const width = Math.min(window.innerWidth - 20, 600);
     const height = Math.min(width * (4 / 3), 800);
 
@@ -21,37 +21,24 @@ const StarEater = () => {
     });
     stageRef.current = stage;
 
-    const layer = new Konva.Layer();
+    const layer = new Konva.Layer({ hitGraphEnabled: false }); // Отключаем hit graph для скорости
     layerRef.current = layer;
     stage.add(layer);
 
     // Черная дыра
-    const blackHoleRing = new Konva.Ring({
-      x: width / 2,
-      y: height / 2,
-      innerRadius: 15,
-      outerRadius: 25,
-      fillRadialGradientStartPoint: { x: 0, y: 0 },
-      fillRadialGradientEndPoint: { x: 0, y: 0 },
-      fillRadialGradientColorStops: [0, 'black', 1, 'rgba(255, 255, 255, 0.2)'],
-      shadowBlur: 10,
-      shadowColor: 'white',
-    });
-
-    const blackHoleCircle = new Konva.Circle({
+    const blackHole = new Konva.Circle({
       x: width / 2,
       y: height / 2,
       radius: 20,
       fill: 'black',
-      stroke: 'transparent',
-      strokeWidth: 2,
-      shadowBlur: 30,
-      shadowColor: 'rgba(255, 255, 255, 0.8)',
+      stroke: 'white',
+      strokeWidth: 1,
+      shadowBlur: 10, // Уменьшено для производительности
+      shadowColor: 'rgba(255, 255, 255, 0.5)',
+      listening: false, // Отключаем события
     });
-
-    blackHoleRef.current = blackHoleCircle;
-    layer.add(blackHoleRing);
-    layer.add(blackHoleCircle);
+    blackHoleRef.current = blackHole;
+    layer.add(blackHole);
 
     // Текст для токенов
     const tokensText = new Konva.Text({
@@ -60,38 +47,43 @@ const StarEater = () => {
       text: 'Токены: 0',
       fontSize: 20,
       fill: 'white',
+      listening: false,
     });
     layer.add(tokensText);
 
-    // Обработка движения
+    // Обработка движения с интерполяцией
     stage.on('mousemove touchmove', (e) => {
       const pos = stage.getPointerPosition();
       if (pos) {
-        const x = Math.max(20, Math.min(width - 20, pos.x));
-        const y = Math.max(20, Math.min(height - 20, pos.y));
-        blackHoleCircle.x(x);
-        blackHoleCircle.y(y);
-        blackHoleRing.x(x);
-        blackHoleRing.y(y);
+        lastPosRef.current = { x: pos.x, y: pos.y };
       }
     });
 
     // Игровой цикл
-    const anim = new Konva.Animation(() => {
+    const anim = new Konva.Animation((frame) => {
       const blackHole = blackHoleRef.current;
       const coins = coinsRef.current;
+      const timeDiff = frame.timeDiff / 1000; // Время между кадрами в секундах
+
+      // Плавное движение черной дыры
+      const targetX = Math.max(20, Math.min(width - 20, lastPosRef.current.x));
+      const targetY = Math.max(20, Math.min(height - 20, lastPosRef.current.y));
+      const lerpFactor = 0.1; // Коэффициент интерполяции
+      blackHole.x(blackHole.x() + (targetX - blackHole.x()) * lerpFactor);
+      blackHole.y(blackHole.y() + (targetY - blackHole.y()) * lerpFactor);
 
       // Добавление монет
-      if (coins.length < 5 && Math.random() < 0.1) {
+      if (coins.length < 5 && Math.random() < 0.05) {
         const coin = new Konva.Circle({
           x: Math.random() * width,
           y: Math.random() * height,
           radius: 5,
-          stroke: 'yellow',
-          strokeWidth: 2,
           fill: '#FFFF00',
-          shadowBlur: 18,
+          stroke: 'yellow',
+          strokeWidth: 1,
+          shadowBlur: 5, // Уменьшено
           shadowColor: '#FFFF33',
+          listening: false,
         });
         coins.push(coin);
         layer.add(coin);
@@ -106,6 +98,13 @@ const StarEater = () => {
         const distSquared = dx * dx + dy * dy;
         const radiusSquared = blackHole.radius() * blackHole.radius();
 
+        // Плавное притяжение монет
+        if (distSquared < 10000) { // Радиус притяжения
+          const dist = Math.sqrt(distSquared);
+          coin.x(coin.x() + (dx / dist) * 2 * timeDiff * 60);
+          coin.y(coin.y() + (dy / dist) * 2 * timeDiff * 60);
+        }
+
         if (distSquared < radiusSquared) {
           coin.destroy();
           coins.splice(i, 1);
@@ -114,10 +113,7 @@ const StarEater = () => {
       }
 
       if (tokensToAdd > 0) {
-        const newRadius = blackHole.radius() + 0.5 * tokensToAdd;
-        blackHole.radius(newRadius);
-        blackHoleRing.innerRadius(newRadius - 5);
-        blackHoleRing.outerRadius(newRadius + 5);
+        blackHole.radius(blackHole.radius() + 0.5 * tokensToAdd);
         tokensRef.current += tokensToAdd;
         tokensText.text(`Токены: ${tokensRef.current}`);
       }
@@ -127,7 +123,6 @@ const StarEater = () => {
 
     anim.start();
 
-    // Очистка
     return () => {
       anim.stop();
       stage.destroy();
