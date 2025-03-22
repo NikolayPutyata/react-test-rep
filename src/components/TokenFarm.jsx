@@ -2,14 +2,15 @@ import { useEffect, useRef } from 'react';
 
 const StarEater = () => {
   const canvasRef = useRef(null);
-  const blackHoleRef = useRef({ x: 300, y: 400, radius: 20 });
+  const blackHoleRef = useRef({ x: 0, y: 0, radius: 20 });
   const coinsRef = useRef([]);
   const tokensRef = useRef(0);
   const lastPosRef = useRef({ x: 0, y: 0 });
+  const lastTimeRef = useRef(performance.now());
 
   useEffect(() => {
     const canvas = canvasRef.current;
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext('2d', { alpha: false }); // Отключаем альфа-канал для скорости
     const width = Math.min(window.innerWidth - 20, 600);
     const height = Math.min(width * (4 / 3), 800);
     canvas.width = width;
@@ -19,8 +20,12 @@ const StarEater = () => {
     blackHoleRef.current.y = height / 2;
     lastPosRef.current = { x: width / 2, y: height / 2 };
 
+    // Очистка фона один раз
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, width, height);
+
     const handleMove = (e) => {
-      e.preventDefault(); // Предотвращаем прокрутку страницы
+      e.preventDefault();
       const rect = canvas.getBoundingClientRect();
       let x, y;
       if (e.type === 'mousemove') {
@@ -34,17 +39,21 @@ const StarEater = () => {
     };
 
     canvas.addEventListener('mousemove', handleMove);
-    canvas.addEventListener('touchmove', handleMove, { passive: false }); // passive: false для preventDefault
+    canvas.addEventListener('touchmove', handleMove, { passive: false });
 
-    const gameLoop = () => {
+    const gameLoop = (time) => {
+      const deltaTime = (time - lastTimeRef.current) / 1000; // Время между кадрами в секундах
+      lastTimeRef.current = time;
+
       const blackHole = blackHoleRef.current;
       const coins = coinsRef.current;
 
-      // Плавное движение черной дыры
+      // Плавное движение черной дыры с учётом времени
       const targetX = Math.max(20, Math.min(width - 20, lastPosRef.current.x));
       const targetY = Math.max(20, Math.min(height - 20, lastPosRef.current.y));
-      blackHole.x += (targetX - blackHole.x) * 0.1;
-      blackHole.y += (targetY - blackHole.y) * 0.1;
+      const speed = 10; // Скорость в пикселях в секунду
+      blackHole.x += (targetX - blackHole.x) * speed * deltaTime;
+      blackHole.y += (targetY - blackHole.y) * speed * deltaTime;
 
       // Добавление монет
       if (coins.length < 5 && Math.random() < 0.05) {
@@ -55,7 +64,7 @@ const StarEater = () => {
         });
       }
 
-      // Обработка столкновений и притяжения
+      // Обработка монет
       let tokensToAdd = 0;
       for (let i = coins.length - 1; i >= 0; i--) {
         const coin = coins[i];
@@ -63,10 +72,12 @@ const StarEater = () => {
         const dy = blackHole.y - coin.y;
         const distSquared = dx * dx + dy * dy;
 
+        // Притяжение монет
         if (distSquared < 10000) {
           const dist = Math.sqrt(distSquared);
-          coin.x += (dx / dist) * 0.5;
-          coin.y += (dy / dist) * 0.5;
+          const pullSpeed = 50 * deltaTime; // Скорость притяжения
+          coin.x += (dx / dist) * pullSpeed;
+          coin.y += (dy / dist) * pullSpeed;
         }
 
         if (distSquared < blackHole.radius * blackHole.radius) {
@@ -80,10 +91,17 @@ const StarEater = () => {
         tokensRef.current += tokensToAdd;
       }
 
-      // Рендеринг
+      // Очистка только изменённых областей (грязные прямоугольники)
       ctx.fillStyle = '#000';
-      ctx.fillRect(0, 0, width, height);
+      ctx.fillRect(0, 0, width, 40); // Очистка области текста
+      coins.forEach((coin) => {
+        const r = coin.radius + 2;
+        ctx.fillRect(coin.x - r, coin.y - r, r * 2, r * 2);
+      });
+      const bhR = blackHole.radius + 2;
+      ctx.fillRect(blackHole.x - bhR, blackHole.y - bhR, bhR * 2, bhR * 2);
 
+      // Рендеринг
       ctx.font = '20px Arial';
       ctx.fillStyle = 'white';
       ctx.fillText(`Токены: ${tokensRef.current}`, 10, 30);
@@ -132,7 +150,7 @@ const StarEater = () => {
       <h2>Пожиратель звёзд</h2>
       <canvas
         ref={canvasRef}
-        style={{ border: '1px solid white', touchAction: 'none' }} // Предотвращаем прокрутку через CSS
+        style={{ border: '1px solid white', touchAction: 'none' }}
       />
       <button onClick={finishGame} style={{ marginTop: '10px' }}>
         Завершить раунд
