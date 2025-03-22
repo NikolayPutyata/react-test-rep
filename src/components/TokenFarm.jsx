@@ -7,7 +7,7 @@ const StarEater = () => {
     width: Math.min(window.innerWidth - 20, 600),
     height: Math.min((window.innerWidth - 20) * (4 / 3), 800),
   });
-  const blackHoleRef = useRef({ x: 150, y: 200, radius: 20 });
+  const blackHoleRef = useRef({ x: 300, y: 400, radius: 20 }); // Начальная позиция в центре
   const coinsRef = useRef([]);
   const stageRef = useRef(null);
   const layerRef = useRef(null);
@@ -90,7 +90,11 @@ const StarEater = () => {
   };
 
   const finishGame = () => {
-    window.Telegram.WebApp.sendData(JSON.stringify({ tokens }));
+    if (window.Telegram?.WebApp) {
+      window.Telegram.WebApp.sendData(JSON.stringify({ tokens }));
+    } else {
+      console.log('Tokens:', tokens); // Для тестирования без Telegram
+    }
     setTokens(0);
     blackHoleRef.current = { x: stageSize.width / 2, y: stageSize.height / 2, radius: 20 };
     coinsRef.current = [];
@@ -103,10 +107,10 @@ const StarEater = () => {
       <Stage
         width={stageSize.width}
         height={stageSize.height}
-        onTouchMove={handleMove}
         onMouseMove={handleMove}
+        onTouchMove={handleMove}
         ref={stageRef}
-        style={{ border: '1px solid transparent' }}
+        style={{ border: '1px solid white' }} // Для видимости области
       >
         <Layer ref={layerRef}>
           <Ring
