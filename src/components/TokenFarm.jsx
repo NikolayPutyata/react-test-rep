@@ -20,7 +20,7 @@ const StarEater = () => {
     blackHoleRef.current.y = height / 2;
     lastPosRef.current = { x: width / 2, y: height / 2 };
 
-    // Создание фона (градиент)
+    // Статичный фон (рендерится один раз)
     const background = ctx.createLinearGradient(0, 0, 0, height);
     background.addColorStop(0, '#1a1a2e'); // Тёмно-синий верх
     background.addColorStop(1, '#0f0f1a'); // Ещё темнее низ
@@ -93,14 +93,14 @@ const StarEater = () => {
         tokensRef.current += tokensToAdd;
       }
 
-      // Очистка изменённых областей
-      ctx.fillStyle = background;
+      // Очистка только изменённых областей
+      ctx.fillStyle = '#0f0f1a'; // Цвет нижней части градиента для упрощения
       ctx.fillRect(0, 0, width, 40); // Область текста
       coins.forEach((coin) => {
-        const r = coin.radius + 10; // Учитываем тень
+        const r = coin.radius + 2; // Без тени, только радиус + обводка
         ctx.fillRect(coin.x - r, coin.y - r, r * 2, r * 2);
       });
-      const bhR = blackHole.radius + 20; // Учитываем тень
+      const bhR = blackHole.radius + 20; // Учитываем тень черной дыры
       ctx.fillRect(blackHole.x - bhR, blackHole.y - bhR, bhR * 2, bhR * 2);
 
       // Рендеринг текста
@@ -108,11 +108,11 @@ const StarEater = () => {
       ctx.fillStyle = 'white';
       ctx.fillText(`Токены: ${tokensRef.current}`, 10, 30);
 
-      // Рендеринг черной дыры с тенью и эффектом пульсации
+      // Рендеринг черной дыры с тенью и пульсацией
       ctx.shadowBlur = 15;
       ctx.shadowColor = 'rgba(255, 255, 255, 0.5)';
       ctx.beginPath();
-      const pulse = Math.sin(time / 500) * 2; // Пульсация радиуса
+      const pulse = Math.sin(time / 500) * 2;
       ctx.arc(blackHole.x, blackHole.y, blackHole.radius + pulse, 0, Math.PI * 2);
       ctx.fillStyle = 'black';
       ctx.fill();
@@ -120,9 +120,8 @@ const StarEater = () => {
       ctx.lineWidth = 1;
       ctx.stroke();
 
-      // Рендеринг монет с тенью
-      ctx.shadowBlur = 10;
-      ctx.shadowColor = '#FFFF33';
+      // Рендеринг монет без тени
+      ctx.shadowBlur = 0; // Отключаем тень для монет
       coins.forEach((coin) => {
         ctx.beginPath();
         ctx.arc(coin.x, coin.y, coin.radius, 0, Math.PI * 2);
@@ -131,9 +130,6 @@ const StarEater = () => {
         ctx.strokeStyle = 'yellow';
         ctx.stroke();
       });
-
-      // Сброс тени после рендеринга
-      ctx.shadowBlur = 0;
 
       requestAnimationFrame(gameLoop);
     };
