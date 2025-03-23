@@ -148,114 +148,102 @@
 // };
 
 // export default StarEater;
-
 import { useEffect, useRef } from 'react';
-import * as PIXI from 'pixi.js';
+import { Application, Graphics, Text } from 'pixi.js';
 
 const StarEater = () => {
-  const pixiContainerRef = useRef(null);
+  const containerRef = useRef(null);
   const appRef = useRef(null);
-  const blackHoleRef = useRef({ x: 300, y: 400, radius: 20 });
+  const blackHoleRef = useRef({ x: 0, y: 0, radius: 20 });
   const coinsRef = useRef([]);
   const tokensRef = useRef(0);
   const lastPosRef = useRef({ x: 0, y: 0 });
+  const tokenTextRef = useRef(null);
 
   useEffect(() => {
-    const width = Math.min(window.innerWidth - 20, 600);
-    const height = Math.min(width * (4 / 3), 800);
-
     const initApp = async () => {
-      const app = new PIXI.Application();
+      // Определяем размеры для мобильных устройств
+      const width = Math.min(window.innerWidth, 500); // Ограничиваем максимальную ширину
+      const height = window.innerHeight * 0.8; // 80% высоты экрана для игрового поля
+
+      const app = new Application();
       await app.init({
         width,
         height,
         backgroundColor: 0x000000,
         resolution: window.devicePixelRatio || 1,
-        antialias: true,
+        autoDensity: true,
+        antialias: true, // Сглаживание для лучшего вида на мобильных
       });
       appRef.current = app;
 
-      pixiContainerRef.current.appendChild(app.canvas);
+      // Добавляем канвас в DOM
+      const container = containerRef.current;
+      container.appendChild(app.canvas);
 
+      // Центрируем черную дыру
       blackHoleRef.current.x = width / 2;
       blackHoleRef.current.y = height / 2;
       lastPosRef.current = { x: width / 2, y: height / 2 };
 
-      const blackHole = new PIXI.Graphics();
-      app.stage.addChild(blackHole);
-
-      const tokenText = new PIXI.Text(`Токены: 0`, {
+      // Текст с токенами
+      const tokenText = new Text(`Токены: ${tokensRef.current}`, {
         fontFamily: 'Arial',
-        fontSize: 20,
+        fontSize: Math.max(16, width * 0.05), // Адаптивный размер шрифта
         fill: 0xffffff,
       });
-      tokenText.position.set(10, 30);
+      tokenText.position.set(10, 10);
       app.stage.addChild(tokenText);
+      tokenTextRef.current = tokenText;
 
-      // Исправленное управление
-      const handleMove = e => {
-        e.preventDefault();
-        const rect = app.canvas.getBoundingClientRect();
-        let x, y;
-        if (e.type === 'mousemove') {
-          x = e.clientX - rect.left;
-          y = e.clientY - rect.top;
-        } else if (e.type === 'touchmove') {
-          x = e.touches[0].clientX - rect.left;
-          y = e.touches[0].clientY - rect.top;
-        }
-        // Учитываем масштаб холста, если он отличается от 1
-        const scaleX = app.canvas.width / rect.width;
-        const scaleY = app.canvas.height / rect.height;
-        lastPosRef.current = { x: x * scaleX, y: y * scaleY };
-      };
+      // Графика черной дыры
+      const blackHoleGraphics = new Graphics();
+      app.stage.addChild(blackHoleGraphics);
 
-      app.canvas.addEventListener('mousemove', handleMove);
-      app.canvas.addEventListener('touchmove', handleMove, { passive: false });
+      // Обработка сенсорного ввода
+      app.stage.interactive = true;
+      app.stage.hitArea = app.screen;
+      app.stage.on('pointermove', e => {
+        const { x, y } = e.data.global;
+        lastPosRef.current = { x, y };
+      });
 
+      // Игровой цикл
       app.ticker.add(() => {
-        const blackHoleData = blackHoleRef.current;
+        const blackHole = blackHoleRef.current;
         const coins = coinsRef.current;
 
-        // Плавное движение с учетом границ
+        // Плавное движение черной дыры
         const targetX = Math.max(
-          blackHoleData.radius,
-          Math.min(width - blackHoleData.radius, lastPosRef.current.x)
+          blackHole.radius,
+          Math.min(width - blackHole.radius, lastPosRef.current.x)
         );
         const targetY = Math.max(
-          blackHoleData.radius,
-          Math.min(height - blackHoleData.radius, lastPosRef.current.y)
+          blackHole.radius,
+          Math.min(height - blackHole.radius, lastPosRef.current.y)
         );
-        blackHoleData.x += (targetX - blackHoleData.x) * 0.1;
-        blackHoleData.y += (targetY - blackHoleData.y) * 0.1;
+        blackHole.x += (targetX - blackHole.x) * 0.1;
+        blackHole.y += (targetY - blackHole.y) * 0.1;
 
-        blackHole.clear();
-        blackHole.lineStyle(1, 0xffffff);
-        blackHole.beginFill(0x000000);
-        blackHole.drawCircle(
-          blackHoleData.x,
-          blackHoleData.y,
-          blackHoleData.radius
-        );
-        blackHole.endFill();
-
+        // Добавление монет
         if (coins.length < 5 && Math.random() < 0.05) {
-          const coin = new PIXI.Graphics();
+          const coin = new Graphics();
+          coin.x = Math.random() * (width - 20) + 10;
+          coin.y = Math.random() * (height - 20) + 10;
           coin.beginFill(0xffff00);
           coin.lineStyle(1, 0xffff00);
-          coin.drawCircle(0, 0, 5);
+          coin.drawCircle(0, 0, Math.max(5, width * 0.015)); // Адаптивный размер монет
           coin.endFill();
-          coin.x = Math.random() * width;
-          coin.y = Math.random() * height;
-          coins.push(coin);
           app.stage.addChild(coin);
+          coins.push(coin);
         }
 
+        // Обработка столкновений и притяжения
         let tokensToAdd = 0;
         for (let i = coins.length - 1; i >= 0; i--) {
           const coin = coins[i];
-          const dx = blackHoleData.x - coin.x;
-          const dy = blackHoleData.y - coin.y;
+          const dx = blackHole.x - coin.x;
+          const dy = blackHole.y - coin.y;
           const distSquared = dx * dx + dy * dy;
 
           if (distSquared < 10000) {
@@ -264,7 +252,7 @@ const StarEater = () => {
             coin.y += (dy / dist) * 0.5;
           }
 
-          if (distSquared < blackHoleData.radius * blackHoleData.radius) {
+          if (distSquared < blackHole.radius * blackHole.radius) {
             app.stage.removeChild(coin);
             coins.splice(i, 1);
             tokensToAdd += 1;
@@ -272,32 +260,45 @@ const StarEater = () => {
         }
 
         if (tokensToAdd > 0) {
-          blackHoleData.radius += 0.5 * tokensToAdd;
+          blackHole.radius += 0.5 * tokensToAdd;
           tokensRef.current += tokensToAdd;
-          tokenText.text = `Токены: ${tokensRef.current}`;
+          tokenTextRef.current.text = `Токены: ${tokensRef.current}`;
         }
-      });
 
-      return () => {
-        app.canvas.removeEventListener('mousemove', handleMove);
-        app.canvas.removeEventListener('touchmove', handleMove);
-        app.destroy(true, { children: true, texture: true, baseTexture: true });
-      };
+        // Отрисовка черной дыры
+        blackHoleGraphics.clear();
+        blackHoleGraphics.beginFill(0x000000);
+        blackHoleGraphics.lineStyle(1, 0xffffff);
+        blackHoleGraphics.drawCircle(
+          blackHole.x,
+          blackHole.y,
+          blackHole.radius
+        );
+        blackHoleGraphics.endFill();
+      });
     };
 
-    let cleanup;
-    initApp()
-      .then(cleanupFn => {
-        cleanup = cleanupFn;
-      })
-      .catch(console.error);
+    initApp();
 
+    // Очистка при размонтировании
     return () => {
-      if (cleanup) cleanup();
+      if (appRef.current) {
+        appRef.current.destroy(true, {
+          children: true,
+          texture: true,
+          baseTexture: true,
+        });
+        const container = containerRef.current;
+        if (container && appRef.current.canvas) {
+          container.removeChild(appRef.current.canvas);
+        }
+      }
     };
   }, []);
 
   const finishGame = () => {
+    if (!appRef.current) return;
+
     if (window.Telegram?.WebApp) {
       window.Telegram.WebApp.sendData(
         JSON.stringify({ tokens: tokensRef.current })
@@ -307,22 +308,54 @@ const StarEater = () => {
     }
     tokensRef.current = 0;
     blackHoleRef.current = {
-      x: appRef.current?.screen.width / 2 || 300,
-      y: appRef.current?.screen.height / 2 || 400,
+      x: appRef.current.screen.width / 2,
+      y: appRef.current.screen.height / 2,
       radius: 20,
     };
-    coinsRef.current.forEach(coin => appRef.current?.stage.removeChild(coin));
+    coinsRef.current.forEach(coin => appRef.current.stage.removeChild(coin));
     coinsRef.current = [];
+    tokenTextRef.current.text = `Токены: ${tokensRef.current}`;
   };
 
   return (
-    <div style={{ background: '#000', color: '#fff', padding: '15px' }}>
-      <h2>Пожиратель звёзд</h2>
+    <div
+      style={{
+        background: '#000',
+        color: '#fff',
+        height: '100vh', // Полная высота экрана
+        display: 'flex',
+        flexDirection: 'column',
+        overflow: 'hidden',
+      }}
+    >
+      <h2
+        style={{
+          textAlign: 'center',
+          margin: '10px 0',
+          fontSize: '1.2em',
+        }}
+      >
+        Пожиратель звёзд
+      </h2>
       <div
-        ref={pixiContainerRef}
-        style={{ border: '1px solid white', touchAction: 'none' }}
+        ref={containerRef}
+        style={{
+          flex: 1, // Занимает доступное пространство
+          border: '1px solid white',
+          maxWidth: '500px', // Ограничение ширины
+          margin: '0 auto', // Центрирование
+          width: '100%',
+        }}
       />
-      <button onClick={finishGame} style={{ marginTop: '10px' }}>
+      <button
+        onClick={finishGame}
+        style={{
+          margin: '10px auto',
+          padding: '10px 20px',
+          fontSize: '1em',
+          display: 'block',
+        }}
+      >
         Завершить раунд
       </button>
     </div>
