@@ -163,8 +163,8 @@ const StarEater = () => {
   useEffect(() => {
     const initApp = async () => {
       // Определяем размеры для мобильных устройств
-      const width = Math.min(window.innerWidth, 500); // Ограничиваем максимальную ширину
-      const height = window.innerHeight * 0.8; // 80% высоты экрана для игрового поля
+      const width = Math.min(window.innerWidth - 20, 500); // Ограничиваем максимальную ширину
+      const height = window.innerHeight * 0.7; // 80% высоты экрана для игрового поля
 
       const app = new Application();
       await app.init({
