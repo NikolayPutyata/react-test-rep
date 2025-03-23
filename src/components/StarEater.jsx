@@ -14,7 +14,7 @@ const StarEater = () => {
     const initApp = async () => {
       // Определяем размеры для мобильных устройств
       const width = Math.min(window.innerWidth, 500); // Ограничиваем максимальную ширину
-      const height = window.innerHeight * 0.95; // 95% высоты экрана для игрового поля
+      const height = window.innerHeight * 0.9; // 90% высоты экрана для игрового поля
 
       const app = new Application();
       await app.init({
