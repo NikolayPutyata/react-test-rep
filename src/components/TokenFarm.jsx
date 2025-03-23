@@ -54,30 +54,28 @@ const StarEater = () => {
 
       // Загрузка текстуры фона
       try {
-        await PIXI.Assets.load('htt');
+        await PIXI.Assets.load('https://i.imgur.com/0jX8X7S.png');
+        const starTexture = PIXI.Texture.from(
+          'https://i.imgur.com/0jX8X7S.png'
+        );
+        const starBackground = new PIXI.TilingSprite({
+          texture: starTexture,
+          width,
+          height,
+        });
+        starBackground.tileScale.set(0.5);
+        app.stage.addChild(starBackground);
       } catch (error) {
         console.error('Ошибка загрузки текстуры:', error);
-        // Используем запасной фон, если текстура не загрузилась
         const fallbackBackground = new PIXI.Graphics();
         fallbackBackground.rect(0, 0, width, height).fill(0x0f0f1a);
         app.stage.addChild(fallbackBackground);
-        return;
       }
-      const starTexture = PIXI.Texture.from('h.png');
-      const starBackground = new PIXI.TilingSprite({
-        texture: starTexture,
-        width,
-        height,
-      });
-      starBackground.tileScale.set(0.5);
-      app.stage.addChild(starBackground);
 
-      // Черная дыра с градиентом и свечением
+      // Черная дыра (простая заливка для теста)
       const blackHole = new PIXI.Graphics();
-      const gradient = new PIXI.FillGradient(0, 0, 0, 40);
-      gradient.addColorStop(0, 0x000000);
-      gradient.addColorStop(1, 0x333333);
-      blackHole.circle(0, 0, 20).fill({ fill: gradient });
+      blackHole.circle(0, 0, 20).fill('white'); // Простая чёрная заливка
+      blackHole.lineStyle(1, 0xffffff); // Белая обводка для видимости
       blackHole.x = width / 2;
       blackHole.y = height / 2;
       blackHole.filters = [
@@ -85,6 +83,7 @@ const StarEater = () => {
       ];
       blackHoleRef.current = blackHole;
       app.stage.addChild(blackHole);
+      console.log('Black hole added:', blackHole); // Логирование для отладки
 
       // Текст для токенов
       const tokensText = new PIXI.Text({
@@ -149,7 +148,6 @@ const StarEater = () => {
           const dy = blackHole.y - coin.y;
           const distSquared = dx * dx + dy * dy;
 
-          // Притяжение монет
           if (distSquared < 10000) {
             const dist = Math.sqrt(distSquared);
             coin.x += (dx / dist) * 50 * deltaTime;
@@ -157,13 +155,11 @@ const StarEater = () => {
           }
 
           if (distSquared < 400) {
-            // 20^2
             app.stage.removeChild(coin);
             coin.destroy();
             coins.splice(i, 1);
             tokensToAdd += 1;
 
-            // Эффект поглощения (частицы)
             for (let j = 0; j < 5; j++) {
               const particle = new PIXI.Graphics();
               particle.circle(0, 0, 2).fill(0xffff00);
@@ -202,7 +198,6 @@ const StarEater = () => {
 
     initPixi();
 
-    // Очистка при размонтировании
     return () => {
       isMounted = false;
       const app = appRef.current;
