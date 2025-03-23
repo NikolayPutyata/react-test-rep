@@ -164,7 +164,6 @@ const StarEater = () => {
     const width = Math.min(window.innerWidth - 20, 600);
     const height = Math.min(width * (4 / 3), 800);
 
-    // Initialize PixiJS Application using the new async init method
     const initApp = async () => {
       const app = new PIXI.Application();
       await app.init({
@@ -176,19 +175,15 @@ const StarEater = () => {
       });
       appRef.current = app;
 
-      // Append PixiJS canvas to the DOM
       pixiContainerRef.current.appendChild(app.canvas);
 
-      // Set initial black hole position
       blackHoleRef.current.x = width / 2;
       blackHoleRef.current.y = height / 2;
       lastPosRef.current = { x: width / 2, y: height / 2 };
 
-      // Create black hole graphics
       const blackHole = new PIXI.Graphics();
       app.stage.addChild(blackHole);
 
-      // Create token text
       const tokenText = new PIXI.Text(`Токены: 0`, {
         fontFamily: 'Arial',
         fontSize: 20,
@@ -197,7 +192,7 @@ const StarEater = () => {
       tokenText.position.set(10, 30);
       app.stage.addChild(tokenText);
 
-      // Handle movement
+      // Исправленное управление
       const handleMove = e => {
         e.preventDefault();
         const rect = app.canvas.getBoundingClientRect();
@@ -209,30 +204,31 @@ const StarEater = () => {
           x = e.touches[0].clientX - rect.left;
           y = e.touches[0].clientY - rect.top;
         }
-        lastPosRef.current = { x, y };
+        // Учитываем масштаб холста, если он отличается от 1
+        const scaleX = app.canvas.width / rect.width;
+        const scaleY = app.canvas.height / rect.height;
+        lastPosRef.current = { x: x * scaleX, y: y * scaleY };
       };
 
       app.canvas.addEventListener('mousemove', handleMove);
       app.canvas.addEventListener('touchmove', handleMove, { passive: false });
 
-      // Game loop
       app.ticker.add(() => {
         const blackHoleData = blackHoleRef.current;
         const coins = coinsRef.current;
 
-        // Smooth black hole movement
+        // Плавное движение с учетом границ
         const targetX = Math.max(
-          20,
-          Math.min(width - 20, lastPosRef.current.x)
+          blackHoleData.radius,
+          Math.min(width - blackHoleData.radius, lastPosRef.current.x)
         );
         const targetY = Math.max(
-          20,
-          Math.min(height - 20, lastPosRef.current.y)
+          blackHoleData.radius,
+          Math.min(height - blackHoleData.radius, lastPosRef.current.y)
         );
         blackHoleData.x += (targetX - blackHoleData.x) * 0.1;
         blackHoleData.y += (targetY - blackHoleData.y) * 0.1;
 
-        // Draw black hole
         blackHole.clear();
         blackHole.lineStyle(1, 0xffffff);
         blackHole.beginFill(0x000000);
@@ -243,7 +239,6 @@ const StarEater = () => {
         );
         blackHole.endFill();
 
-        // Add coins
         if (coins.length < 5 && Math.random() < 0.05) {
           const coin = new PIXI.Graphics();
           coin.beginFill(0xffff00);
@@ -256,7 +251,6 @@ const StarEater = () => {
           app.stage.addChild(coin);
         }
 
-        // Handle collisions and attraction
         let tokensToAdd = 0;
         for (let i = coins.length - 1; i >= 0; i--) {
           const coin = coins[i];
@@ -284,7 +278,6 @@ const StarEater = () => {
         }
       });
 
-      // Cleanup function
       return () => {
         app.canvas.removeEventListener('mousemove', handleMove);
         app.canvas.removeEventListener('touchmove', handleMove);
@@ -292,7 +285,6 @@ const StarEater = () => {
       };
     };
 
-    // Execute the initialization and handle cleanup
     let cleanup;
     initApp()
       .then(cleanupFn => {
