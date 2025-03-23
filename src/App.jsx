@@ -1,4 +1,4 @@
-import GameCanvas from './components/TokenFarm';
+import GameCanvas from './components/GameCanvas';
 
 const App = () => {
   return <GameCanvas />;
