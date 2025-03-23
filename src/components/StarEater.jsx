@@ -163,7 +163,7 @@ const StarEater = () => {
   useEffect(() => {
     const initApp = async () => {
       // Определяем размеры для мобильных устройств
-      const width = Math.min(window.innerWidth - 20, 500); // Ограничиваем максимальную ширину
+      const width = Math.min(window.innerWidth, 500); // Ограничиваем максимальную ширину
       const height = window.innerHeight * 0.7; // 80% высоты экрана для игрового поля
 
       const app = new Application();
@@ -326,6 +326,8 @@ const StarEater = () => {
         display: 'flex',
         flexDirection: 'column',
         overflow: 'hidden',
+        justifyContent: 'center',
+        alignItems: 'center',
       }}
     >
       <h2
@@ -343,7 +345,9 @@ const StarEater = () => {
           flex: 1, // Занимает доступное пространство
           border: '1px solid white',
           maxWidth: '500px', // Ограничение ширины
-          margin: '0 auto', // Центрирование
+          marginLeft: '20px',
+          marginRight: '20px',
+
           width: '100%',
         }}
       />
