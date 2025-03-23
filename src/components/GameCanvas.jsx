@@ -22,8 +22,8 @@ const GameCanvas = () => {
 
       // Создаем круг
       const circle = new PIXI.Graphics();
-      circle.beginFill(0xff0000);
-      circle.drawCircle(0, 0, 50);
+      circle.fill(0xff0000);
+      circle.circle(0, 0, 50);
       circle.endFill();
       circle.x = 400; // Начальная позиция X
       circle.y = 300; // Начальная позиция Y
@@ -44,7 +44,7 @@ const GameCanvas = () => {
       // Обработка движения пальца
       circle.on('touchmove', event => {
         if (isDragging) {
-          const touchData = event.data.getLocalPosition(app.stage);
+          const touchData = event.getLocalPosition(app.stage);
           // Устанавливаем позицию круга прямо под пальцем
           circle.x = touchData.x;
           circle.y = touchData.y;
