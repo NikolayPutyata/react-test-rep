@@ -1,7 +1,7 @@
-import GameCanvas from './components/GameCanvas';
+import StarEater from './components/StarEater';
 
 const App = () => {
-  return <GameCanvas />;
+  return <StarEater />;
 };
 
 export default App;
