@@ -38,6 +38,7 @@ const GameCanvas = () => {
 
       // Обработка начала касания
       circle.on('touchstart', event => {
+        event.preventDefault();
         const touchData = event.data.getLocalPosition(app.stage);
         startX = touchData.x - circle.x;
         startY = touchData.y - circle.y;
@@ -46,6 +47,7 @@ const GameCanvas = () => {
 
       // Обработка движения пальца
       circle.on('touchmove', event => {
+        event.preventDefault();
         if (isDragging) {
           const touchData = event.data.getLocalPosition(app.stage);
           circle.x = touchData.x - startX;
