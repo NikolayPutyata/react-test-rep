@@ -1,7 +1,7 @@
-import TokenFarm from './components/TokenFarm';
+import GameCanvas from './components/TokenFarm';
 
 const App = () => {
-  return <TokenFarm />;
+  return <GameCanvas />;
 };
 
 export default App;
