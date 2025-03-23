@@ -34,22 +34,36 @@ const StarEater = () => {
 
       // Инициализация PixiJS v8
       const app = new PIXI.Application();
-      await app.init({
-        width: Math.min(window.innerWidth - 20, 600),
-        height: Math.min((window.innerWidth - 20) * (4 / 3), 800),
-        backgroundColor: 0x0f0f1a,
-        resolution: window.devicePixelRatio || 1,
-        autoDensity: true,
-      });
+      try {
+        await app.init({
+          width: Math.min(window.innerWidth - 20, 600),
+          height: Math.min((window.innerWidth - 20) * (4 / 3), 800),
+          backgroundColor: 0x0f0f1a,
+          resolution: window.devicePixelRatio || 1,
+          autoDensity: true,
+        });
+      } catch (error) {
+        console.error('Ошибка инициализации PixiJS:', error);
+        return;
+      }
       appRef.current = app;
       containerRef.current.appendChild(app.canvas);
 
       const width = app.screen.width;
       const height = app.screen.height;
 
-      // Предварительная загрузка текстуры фона
-      await PIXI.Assets.load('https://i.imgur.com/0jX8X7S.png');
-      const starTexture = PIXI.Texture.from('https://i.imgur.com/0jX8X7S.png');
+      // Загрузка текстуры фона
+      try {
+        await PIXI.Assets.load('htt');
+      } catch (error) {
+        console.error('Ошибка загрузки текстуры:', error);
+        // Используем запасной фон, если текстура не загрузилась
+        const fallbackBackground = new PIXI.Graphics();
+        fallbackBackground.rect(0, 0, width, height).fill(0x0f0f1a);
+        app.stage.addChild(fallbackBackground);
+        return;
+      }
+      const starTexture = PIXI.Texture.from('h.png');
       const starBackground = new PIXI.TilingSprite({
         texture: starTexture,
         width,
@@ -60,11 +74,10 @@ const StarEater = () => {
 
       // Черная дыра с градиентом и свечением
       const blackHole = new PIXI.Graphics();
-      blackHole.circle(0, 0, 20).fill({
-        fill: new PIXI.FillGradient(0, 0, 0, 40)
-          .addColorStop(0, 0x000000)
-          .addColorStop(1, 0x333333),
-      });
+      const gradient = new PIXI.FillGradient(0, 0, 0, 40);
+      gradient.addColorStop(0, 0x000000);
+      gradient.addColorStop(1, 0x333333);
+      blackHole.circle(0, 0, 20).fill({ fill: gradient });
       blackHole.x = width / 2;
       blackHole.y = height / 2;
       blackHole.filters = [
@@ -89,12 +102,13 @@ const StarEater = () => {
       tokensText.y = 10;
       app.stage.addChild(tokensText);
 
-      // Добавляем слушатели событий
+      // Слушатели событий
       app.canvas.addEventListener('mousemove', handleMove);
       app.canvas.addEventListener('touchmove', handleMove, { passive: false });
 
       // Игровой цикл
       app.ticker.add(delta => {
+        if (!isMounted) return;
         const blackHole = blackHoleRef.current;
         const coins = coinsRef.current;
         const deltaTime = delta / 60;
@@ -158,15 +172,20 @@ const StarEater = () => {
               particle.vx = (Math.random() - 0.5) * 50;
               particle.vy = (Math.random() - 0.5) * 50;
               app.stage.addChild(particle);
+
               const particleTicker = delta => {
-                particle.x += particle.vx * deltaTime;
-                particle.y += particle.vy * deltaTime;
+                const dt = delta / 60;
+                particle.x += particle.vx * dt;
+                particle.y += particle.vy * dt;
               };
               app.ticker.add(particleTicker);
+
               setTimeout(() => {
-                app.stage.removeChild(particle);
-                particle.destroy();
-                app.ticker.remove(particleTicker);
+                if (isMounted) {
+                  app.stage.removeChild(particle);
+                  particle.destroy();
+                  app.ticker.remove(particleTicker);
+                }
               }, 300);
             }
           }
@@ -181,9 +200,7 @@ const StarEater = () => {
       lastPosRef.current = { x: width / 2, y: height / 2 };
     };
 
-    initPixi().catch(error =>
-      console.error('Ошибка инициализации PixiJS:', error)
-    );
+    initPixi();
 
     // Очистка при размонтировании
     return () => {
@@ -192,6 +209,7 @@ const StarEater = () => {
       if (app && app.canvas) {
         app.canvas.removeEventListener('mousemove', handleMove);
         app.canvas.removeEventListener('touchmove', handleMove);
+        app.ticker.stop();
         app.destroy(true, { children: true, texture: true, baseTexture: true });
       }
     };
