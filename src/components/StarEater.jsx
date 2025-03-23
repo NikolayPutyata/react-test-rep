@@ -120,7 +120,9 @@ const StarEater = () => {
 
         // Отрисовка черной дыры
         blackHoleGraphics.clear();
-        blackHoleGraphics.setStrokeStyle(1, 0xffffff);
+        blackHoleGraphics.setStrokeStyle(3, 'white');
+        blackHoleGraphics.fill(0x00bbb0); // Заполняем черным цветом
+
         blackHoleGraphics.circle(blackHole.x, blackHole.y, blackHole.radius);
         blackHoleGraphics.endFill();
       });
