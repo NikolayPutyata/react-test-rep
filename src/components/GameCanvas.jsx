@@ -18,6 +18,7 @@ const GameCanvas = () => {
       // Привязываем канвас к DOM
       if (canvasRef.current) {
         canvasRef.current.appendChild(app.canvas);
+        app.canvas.style.touchAction = 'none';
       }
 
       // Создаем круг
