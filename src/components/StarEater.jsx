@@ -38,7 +38,7 @@ const StarEater = () => {
 
       // Текст с токенами
       const tokenText = new Text({
-        text: `Токены: ${tokensRef.current}`,
+        text: `Tokens: ${tokensRef.current}`,
         style: {
           fontFamily: 'Arial',
           fontSize: Math.max(16, width * 0.05), // Адаптивный размер шрифта
@@ -115,7 +115,7 @@ const StarEater = () => {
         if (tokensToAdd > 0) {
           blackHole.radius += 0.5 * tokensToAdd;
           tokensRef.current += tokensToAdd;
-          tokenTextRef.current.text = `Токены: ${tokensRef.current}`;
+          tokenTextRef.current.text = `Tokens: ${tokensRef.current}`;
         }
 
         // Отрисовка черной дыры
@@ -164,7 +164,7 @@ const StarEater = () => {
     };
     coinsRef.current.forEach(coin => appRef.current.stage.removeChild(coin));
     coinsRef.current = [];
-    tokenTextRef.current.text = `Токены: ${tokensRef.current}`;
+    tokenTextRef.current.text = `Tokens: ${tokensRef.current}`;
   };
 
   return (
@@ -187,7 +187,7 @@ const StarEater = () => {
           fontSize: '1.2em',
         }}
       >
-        Пожиратель звёзд
+        GAME
       </h2>
       <div
         ref={containerRef}
