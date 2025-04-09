@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { Application, Graphics, Text } from 'pixi.js';
+import { Application, Graphics, Assets, Sprite, Text } from 'pixi.js';
 
 const StarEater = () => {
   const containerRef = useRef(null);
@@ -31,6 +31,16 @@ const StarEater = () => {
       const container = containerRef.current;
       container.appendChild(app.canvas);
 
+      // Добавляем фон через Assets
+      Assets.add({ alias: 'background', src: '/assets/phon.png' }); // Укажите правильный путь
+      await Assets.load('background').then(texture => {
+        const background = new Sprite(texture);
+        background.width = width;
+        background.height = height;
+        background.position.set(0, 0);
+        app.stage.addChild(background); // Добавляем фон первым
+      });
+
       // Центрируем черную дыру
       blackHoleRef.current.x = width / 2;
       blackHoleRef.current.y = height / 2;
@@ -38,7 +48,7 @@ const StarEater = () => {
 
       // Текст с токенами
       const tokenText = new Text({
-        text: `Tokens: ${tokensRef.current}`,
+        text: `${tokensRef.current}`,
         style: {
           fontFamily: 'Arial',
           fontSize: Math.max(16, width * 0.05), // Адаптивный размер шрифта
@@ -84,7 +94,6 @@ const StarEater = () => {
           coin.x = Math.random() * (width - 20) + 10;
           coin.y = Math.random() * (height - 20) + 10;
           coin.fill(0xffff00);
-          coin.setStrokeStyle(1, 0xffff00);
           coin.circle(0, 0, Math.max(5, width * 0.015)); // Адаптивный размер монет
           coin.endFill();
           app.stage.addChild(coin);
@@ -115,16 +124,17 @@ const StarEater = () => {
         if (tokensToAdd > 0) {
           blackHole.radius += 0.5 * tokensToAdd;
           tokensRef.current += tokensToAdd;
-          tokenTextRef.current.text = `Tokens: ${tokensRef.current}`;
+          tokenTextRef.current.text = `${tokensRef.current}`;
         }
 
         // Отрисовка черной дыры
-        blackHoleGraphics.clear();
-        blackHoleGraphics.setStrokeStyle(3, 'white');
-        blackHoleGraphics.fill(0x00bbb0); // Заполняем черным цветом
 
-        blackHoleGraphics.circle(blackHole.x, blackHole.y, blackHole.radius);
-        blackHoleGraphics.endFill();
+        blackHoleGraphics.clear();
+        blackHoleGraphics
+          .stroke({ color: 0xff00ff, width: 2 })
+          .fill(0x000000) // Черная заливка
+          .circle(blackHole.x, blackHole.y, blackHole.radius)
+          .endFill();
       });
     };
 
@@ -164,7 +174,7 @@ const StarEater = () => {
     };
     coinsRef.current.forEach(coin => appRef.current.stage.removeChild(coin));
     coinsRef.current = [];
-    tokenTextRef.current.text = `Tokens: ${tokensRef.current}`;
+    tokenTextRef.current.text = `${tokensRef.current}`;
   };
 
   return (

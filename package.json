@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@pixi/filter-blur": "^7.4.3",
+    "@pixi/filter-drop-shadow": "^5.2.0",
     "@pixi/filter-glow": "^5.2.1",
     "@pixi/react": "^7.1.2",
     "@reduxjs/toolkit": "^2.2.7",
