@@ -9,12 +9,16 @@ const StarEater = () => {
   const tokensRef = useRef(0);
   const lastPosRef = useRef({ x: 0, y: 0 });
   const tokenTextRef = useRef(null);
+  // Новые рефы для эффекта пульсации и цвета
+  const pulseScaleRef = useRef(1); // Масштаб для пульсации
+  const pulseTimerRef = useRef(0); // Таймер для длительности эффекта
+  const strokeColorRef = useRef(0xff00ff); // Цвет обводки (по умолчанию розовый)
+  const particlesRef = useRef([]);
 
   useEffect(() => {
     const initApp = async () => {
-      // Определяем размеры для мобильных устройств
-      const width = Math.min(window.innerWidth, 500); // Ограничиваем максимальную ширину
-      const height = window.innerHeight * 0.9; // 90% высоты экрана для игрового поля
+      const width = Math.min(window.innerWidth, 500);
+      const height = window.innerHeight * 0.9;
 
       const app = new Application();
       await app.init({
@@ -23,35 +27,31 @@ const StarEater = () => {
         backgroundColor: 0x000000,
         resolution: window.devicePixelRatio || 1,
         autoDensity: true,
-        antialias: true, // Сглаживание для лучшего вида на мобильных
+        antialias: true,
       });
       appRef.current = app;
 
-      // Добавляем канвас в DOM
       const container = containerRef.current;
       container.appendChild(app.canvas);
 
-      // Добавляем фон через Assets
-      Assets.add({ alias: 'background', src: '/assets/phon.png' }); // Укажите правильный путь
+      Assets.add({ alias: 'background', src: '/assets/phon.png' });
       await Assets.load('background').then(texture => {
         const background = new Sprite(texture);
         background.width = width;
         background.height = height;
         background.position.set(0, 0);
-        app.stage.addChild(background); // Добавляем фон первым
+        app.stage.addChild(background);
       });
 
-      // Центрируем черную дыру
       blackHoleRef.current.x = width / 2;
       blackHoleRef.current.y = height / 2;
       lastPosRef.current = { x: width / 2, y: height / 2 };
 
-      // Текст с токенами
       const tokenText = new Text({
         text: `${tokensRef.current}`,
         style: {
           fontFamily: 'Arial',
-          fontSize: Math.max(16, width * 0.05), // Адаптивный размер шрифта
+          fontSize: Math.max(16, width * 0.05),
           fill: 0xffffff,
         },
       });
@@ -59,11 +59,9 @@ const StarEater = () => {
       app.stage.addChild(tokenText);
       tokenTextRef.current = tokenText;
 
-      // Графика черной дыры
       const blackHoleGraphics = new Graphics();
       app.stage.addChild(blackHoleGraphics);
 
-      // Обработка сенсорного ввода
       app.stage.interactive = true;
       app.stage.hitArea = app.screen;
       app.stage.on('pointermove', e => {
@@ -71,7 +69,6 @@ const StarEater = () => {
         lastPosRef.current = { x, y };
       });
 
-      // Игровой цикл
       app.ticker.add(() => {
         const blackHole = blackHoleRef.current;
         const coins = coinsRef.current;
@@ -94,7 +91,7 @@ const StarEater = () => {
           coin.x = Math.random() * (width - 20) + 10;
           coin.y = Math.random() * (height - 20) + 10;
           coin.fill(0xffff00);
-          coin.circle(0, 0, Math.max(5, width * 0.015)); // Адаптивный размер монет
+          coin.circle(0, 0, Math.max(5, width * 0.015));
           coin.endFill();
           app.stage.addChild(coin);
           coins.push(coin);
@@ -108,7 +105,7 @@ const StarEater = () => {
           const dy = blackHole.y - coin.y;
           const distSquared = dx * dx + dy * dy;
 
-          if (distSquared < 10000) {
+          if (distSquared < 15000) {
             const dist = Math.sqrt(distSquared);
             coin.x += (dx / dist) * 0.5;
             coin.y += (dy / dist) * 0.5;
@@ -118,6 +115,23 @@ const StarEater = () => {
             app.stage.removeChild(coin);
             coins.splice(i, 1);
             tokensToAdd += 1;
+            pulseTimerRef.current = 30;
+            strokeColorRef.current = 0xffffff;
+
+            // Добавляем частицы
+            for (let j = 0; j < 4; j++) {
+              const particle = new Graphics();
+              particle.x = coin.x;
+              particle.y = coin.y;
+              particle.fill(0xff00ff);
+              particle.circle(0, 0, 2);
+              particle.endFill();
+              particle.vx = (Math.random() - 0.5) * 4; // Случайная скорость по X
+              particle.vy = (Math.random() - 0.5) * 4; // Случайная скорость по Y
+              particle.life = 15; // Время жизни частицы в кадрах
+              app.stage.addChild(particle);
+              particlesRef.current.push(particle);
+            }
           }
         }
 
@@ -127,20 +141,45 @@ const StarEater = () => {
           tokenTextRef.current.text = `${tokensRef.current}`;
         }
 
-        // Отрисовка черной дыры
+        // Обновляем эффект пульсации
+        if (pulseTimerRef.current > 0) {
+          pulseTimerRef.current -= 1;
+          // Пульсация: увеличиваем и уменьшаем масштаб
+          pulseScaleRef.current =
+            1 + 0.05 * Math.sin((pulseTimerRef.current / 10) * Math.PI);
+          if (pulseTimerRef.current === 0) {
+            pulseScaleRef.current = 1; // Возвращаем нормальный масштаб
+            strokeColorRef.current = 0xff00ff; // Возвращаем розовый цвет
+          }
+        }
 
+        const particles = particlesRef.current;
+        for (let i = particles.length - 1; i >= 0; i--) {
+          const particle = particles[i];
+          particle.x += particle.vx;
+          particle.y += particle.vy;
+          particle.life -= 1;
+          if (particle.life <= 0) {
+            app.stage.removeChild(particle);
+            particles.splice(i, 1);
+          }
+        }
+        // Отрисовка черной дыры с учетом масштаба и цвета
         blackHoleGraphics.clear();
         blackHoleGraphics
-          .stroke({ color: 0xff00ff, width: 2 })
-          .fill(0x000000) // Черная заливка
-          .circle(blackHole.x, blackHole.y, blackHole.radius)
+          .stroke({ color: strokeColorRef.current, width: 2 })
+          .fill(0x000000)
+          .circle(
+            blackHole.x,
+            blackHole.y,
+            blackHole.radius * pulseScaleRef.current
+          )
           .endFill();
       });
     };
 
     initApp();
 
-    // Очистка при размонтировании
     return () => {
       if (appRef.current) {
         appRef.current.destroy(true, {
@@ -182,7 +221,7 @@ const StarEater = () => {
       style={{
         background: '#000',
         color: '#fff',
-        height: '100vh', // Полная высота экрана
+        height: '100vh',
         display: 'flex',
         flexDirection: 'column',
         overflow: 'hidden',
@@ -202,12 +241,11 @@ const StarEater = () => {
       <div
         ref={containerRef}
         style={{
-          flex: 1, // Занимает доступное пространство
+          flex: 1,
           border: '1px solid white',
-          maxWidth: '500px', // Ограничение ширины
+          maxWidth: '500px',
           marginLeft: '20px',
           marginRight: '20px',
-
           width: '100%',
         }}
       />
