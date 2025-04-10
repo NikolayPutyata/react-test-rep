@@ -12,7 +12,7 @@ const StarEater = () => {
   // Новые рефы для эффекта пульсации и цвета
   const pulseScaleRef = useRef(1); // Масштаб для пульсации
   const pulseTimerRef = useRef(0); // Таймер для длительности эффекта
-  const strokeColorRef = useRef(0xff00ff); // Цвет обводки (по умолчанию розовый)
+  const strokeColorRef = useRef(0xffffff); // Цвет обводки (по умолчанию розовый)
   const particlesRef = useRef([]);
 
   useEffect(() => {
@@ -34,14 +34,27 @@ const StarEater = () => {
       const container = containerRef.current;
       container.appendChild(app.canvas);
 
+      // Загрузка фона
       Assets.add({ alias: 'background', src: '/assets/phon.png' });
-      await Assets.load('background').then(texture => {
-        const background = new Sprite(texture);
-        background.width = width;
-        background.height = height;
-        background.position.set(0, 0);
-        app.stage.addChild(background);
-      });
+      // Загрузка четырех SVG для монет
+      Assets.add({ alias: 'coin1', src: '/assets/sun.svg' });
+      Assets.add({ alias: 'coin2', src: '/assets/jup.svg' });
+      Assets.add({ alias: 'coin3', src: '/assets/met.svg' });
+      Assets.add({ alias: 'coin4', src: '/assets/ear.svg' });
+
+      // Загружаем все ресурсы
+      const assets = await Assets.load([
+        'background',
+        'coin1',
+        'coin2',
+        'coin3',
+        'coin4',
+      ]);
+      const background = new Sprite(assets.background);
+      background.width = width;
+      background.height = height;
+      background.position.set(0, 0);
+      app.stage.addChild(background);
 
       blackHoleRef.current.x = width / 2;
       blackHoleRef.current.y = height / 2;
@@ -60,6 +73,7 @@ const StarEater = () => {
       tokenTextRef.current = tokenText;
 
       const blackHoleGraphics = new Graphics();
+
       app.stage.addChild(blackHoleGraphics);
 
       app.stage.interactive = true;
@@ -68,6 +82,15 @@ const StarEater = () => {
         const { x, y } = e.data.global;
         lastPosRef.current = { x, y };
       });
+
+      // Добавляем счетчик для выбора монеты
+      let coinIndex = 0;
+      const coinTextures = [
+        assets.coin1,
+        assets.coin2,
+        assets.coin3,
+        assets.coin4,
+      ];
 
       app.ticker.add(() => {
         const blackHole = blackHoleRef.current;
@@ -85,16 +108,19 @@ const StarEater = () => {
         blackHole.x += (targetX - blackHole.x) * 0.1;
         blackHole.y += (targetY - blackHole.y) * 0.1;
 
-        // Добавление монет
+        // Добавление монет по очереди
         if (coins.length < 5 && Math.random() < 0.05) {
-          const coin = new Graphics();
+          const coin = new Sprite(coinTextures[coinIndex]); // Используем текущую текстуру
           coin.x = Math.random() * (width - 20) + 10;
           coin.y = Math.random() * (height - 20) + 10;
-          coin.fill(0xffff00);
-          coin.circle(0, 0, Math.max(5, width * 0.015));
-          coin.endFill();
+          coin.anchor.set(0.5); // Центрируем монету
+          coin.width = Math.max(10, width * 0.05); // Устанавливаем размер
+          coin.height = Math.max(10, width * 0.05);
           app.stage.addChild(coin);
           coins.push(coin);
+
+          // Переключаем индекс на следующую монету
+          coinIndex = (coinIndex + 1) % 4; // Цикл: 0 -> 1 -> 2 -> 3 -> 0
         }
 
         // Обработка столкновений и притяжения
@@ -116,7 +142,7 @@ const StarEater = () => {
             coins.splice(i, 1);
             tokensToAdd += 1;
             pulseTimerRef.current = 30;
-            strokeColorRef.current = 0xffffff;
+            strokeColorRef.current = 0xff00ff;
 
             // Добавляем частицы
             for (let j = 0; j < 4; j++) {
@@ -126,9 +152,9 @@ const StarEater = () => {
               particle.fill(0xff00ff);
               particle.circle(0, 0, 2);
               particle.endFill();
-              particle.vx = (Math.random() - 0.5) * 4; // Случайная скорость по X
-              particle.vy = (Math.random() - 0.5) * 4; // Случайная скорость по Y
-              particle.life = 15; // Время жизни частицы в кадрах
+              particle.vx = (Math.random() - 0.5) * 4;
+              particle.vy = (Math.random() - 0.5) * 4;
+              particle.life = 15;
               app.stage.addChild(particle);
               particlesRef.current.push(particle);
             }
@@ -144,12 +170,11 @@ const StarEater = () => {
         // Обновляем эффект пульсации
         if (pulseTimerRef.current > 0) {
           pulseTimerRef.current -= 1;
-          // Пульсация: увеличиваем и уменьшаем масштаб
           pulseScaleRef.current =
             1 + 0.05 * Math.sin((pulseTimerRef.current / 10) * Math.PI);
           if (pulseTimerRef.current === 0) {
-            pulseScaleRef.current = 1; // Возвращаем нормальный масштаб
-            strokeColorRef.current = 0xff00ff; // Возвращаем розовый цвет
+            pulseScaleRef.current = 1;
+            strokeColorRef.current = 0xffffff;
           }
         }
 
@@ -164,10 +189,16 @@ const StarEater = () => {
             particles.splice(i, 1);
           }
         }
-        // Отрисовка черной дыры с учетом масштаба и цвета
+
         blackHoleGraphics.clear();
+
         blackHoleGraphics
-          .stroke({ color: strokeColorRef.current, width: 2 })
+          .stroke({
+            color: strokeColorRef.current,
+            width: 2,
+            alpha: 0.5, // Прозрачность 80%
+            alignment: 1,
+          })
           .fill(0x000000)
           .circle(
             blackHole.x,
