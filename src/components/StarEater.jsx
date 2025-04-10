@@ -131,8 +131,8 @@ const StarEater = () => {
           coin.x = Math.random() * (width - 20) + 10;
           coin.y = Math.random() * (height - 20) + 10;
           coin.anchor.set(0.5); // Центрируем монету
-          coin.width = Math.max(10, width * 0.1); // Устанавливаем размер
-          coin.height = Math.max(10, width * 0.1);
+          coin.width = Math.max(10, width * 0.6); // Устанавливаем размер
+          coin.height = Math.max(10, width * 0.6);
           app.stage.addChild(coin);
           coins.push(coin);
 
