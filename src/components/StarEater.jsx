@@ -131,8 +131,8 @@ const StarEater = () => {
           coin.x = Math.random() * (width - 20) + 10;
           coin.y = Math.random() * (height - 20) + 10;
           coin.anchor.set(0.5); // Центрируем монету
-          coin.width = Math.max(10, width * 0.05); // Устанавливаем размер
-          coin.height = Math.max(10, width * 0.05);
+          coin.width = Math.max(10, width * 0.1); // Устанавливаем размер
+          coin.height = Math.max(10, width * 0.1);
           app.stage.addChild(coin);
           coins.push(coin);
 
@@ -208,17 +208,6 @@ const StarEater = () => {
         }
 
         blackHoleGraphics.clear();
-
-        // Градиент для внешнего свечения
-        // const gradient = new FillGradient(
-        //   blackHole.x - blackHole.radius * 2,
-        //   blackHole.y,
-        //   blackHole.x + blackHole.radius * 2,
-        //   blackHole.y
-        // );
-        // gradient.addColorStop(0, 0xff5500); // Оранжевый
-        // gradient.addColorStop(0.5, 0xffaa00); // Желтый
-        // gradient.addColorStop(1, 0x000000); // Черный к центру
 
         blackHoleGraphics
           .fill('black')
