@@ -1,5 +1,12 @@
 import { useEffect, useRef } from 'react';
-import { Application, Graphics, Assets, Sprite, Text } from 'pixi.js';
+import {
+  Application,
+  Graphics,
+  Assets,
+  Sprite,
+  Text,
+  BlurFilter,
+} from 'pixi.js';
 
 const StarEater = () => {
   const containerRef = useRef(null);
@@ -28,6 +35,7 @@ const StarEater = () => {
         resolution: window.devicePixelRatio || 1,
         autoDensity: true,
         antialias: true,
+        preference: 'webgl',
       });
       appRef.current = app;
 
@@ -41,6 +49,7 @@ const StarEater = () => {
       Assets.add({ alias: 'coin2', src: '/assets/jup.svg' });
       Assets.add({ alias: 'coin3', src: '/assets/met.svg' });
       Assets.add({ alias: 'coin4', src: '/assets/ear.svg' });
+      Assets.add({ alias: 'coin5', src: '/assets/mars.svg' });
 
       // Загружаем все ресурсы
       const assets = await Assets.load([
@@ -49,6 +58,7 @@ const StarEater = () => {
         'coin2',
         'coin3',
         'coin4',
+        'coin5',
       ]);
       const background = new Sprite(assets.background);
       background.width = width;
@@ -76,6 +86,12 @@ const StarEater = () => {
 
       app.stage.addChild(blackHoleGraphics);
 
+      const blurFilter2 = new BlurFilter({
+        strength: 5, // Сила размытия (настраивай под эффект свечения)
+        quality: 4, // Качество размытия
+      });
+      blackHoleGraphics.filters = [blurFilter2];
+
       app.stage.interactive = true;
       app.stage.hitArea = app.screen;
       app.stage.on('pointermove', e => {
@@ -90,6 +106,7 @@ const StarEater = () => {
         assets.coin2,
         assets.coin3,
         assets.coin4,
+        assets.coin5,
       ];
 
       app.ticker.add(() => {
@@ -120,7 +137,7 @@ const StarEater = () => {
           coins.push(coin);
 
           // Переключаем индекс на следующую монету
-          coinIndex = (coinIndex + 1) % 4; // Цикл: 0 -> 1 -> 2 -> 3 -> 0
+          coinIndex = (coinIndex + 1) % 5; // Цикл: 0 -> 1 -> 2 -> 3 -> 0
         }
 
         // Обработка столкновений и притяжения
@@ -149,7 +166,7 @@ const StarEater = () => {
               const particle = new Graphics();
               particle.x = coin.x;
               particle.y = coin.y;
-              particle.fill(0xff00ff);
+              particle.fill('#EA9900');
               particle.circle(0, 0, 2);
               particle.endFill();
               particle.vx = (Math.random() - 0.5) * 4;
@@ -192,18 +209,43 @@ const StarEater = () => {
 
         blackHoleGraphics.clear();
 
+        // Градиент для внешнего свечения
+        // const gradient = new FillGradient(
+        //   blackHole.x - blackHole.radius * 2,
+        //   blackHole.y,
+        //   blackHole.x + blackHole.radius * 2,
+        //   blackHole.y
+        // );
+        // gradient.addColorStop(0, 0xff5500); // Оранжевый
+        // gradient.addColorStop(0.5, 0xffaa00); // Желтый
+        // gradient.addColorStop(1, 0x000000); // Черный к центру
+
         blackHoleGraphics
-          .stroke({
-            color: strokeColorRef.current,
-            width: 2,
-            alpha: 0.5, // Прозрачность 80%
-            alignment: 1,
-          })
+          .fill('black')
+          .circle(
+            blackHole.x,
+            blackHole.y,
+            blackHole.radius * 1.5 * pulseScaleRef.current
+          )
+          .endFill();
+
+        // Центральная черная область
+        blackHoleGraphics
           .fill(0x000000)
           .circle(
             blackHole.x,
             blackHole.y,
             blackHole.radius * pulseScaleRef.current
+          )
+          .endFill();
+
+        // Обводка для усиления эффекта
+        blackHoleGraphics
+          .stroke({ color: 0xff5500, width: 2, alpha: 3 })
+          .circle(
+            blackHole.x,
+            blackHole.y,
+            blackHole.radius * 1.3 * pulseScaleRef.current
           )
           .endFill();
       });
