@@ -7,6 +7,7 @@ import {
   Text,
   BlurFilter,
 } from 'pixi.js';
+import { sound } from '@pixi/sound';
 
 const StarEater = () => {
   const containerRef = useRef(null);
@@ -16,11 +17,9 @@ const StarEater = () => {
   const tokensRef = useRef(0);
   const lastPosRef = useRef({ x: 0, y: 0 });
   const tokenTextRef = useRef(null);
-  // Новые рефы для эффекта пульсации и цвета
-  const pulseScaleRef = useRef(1); // Масштаб для пульсации
-  const pulseTimerRef = useRef(0); // Таймер для длительности эффекта
-  const strokeColorRef = useRef(0xffffff); // Цвет обводки (по умолчанию розовый)
-  const particlesRef = useRef([]);
+  const pulseScaleRef = useRef(1);
+  const pulseTimerRef = useRef(0);
+  const strokeColorRef = useRef(0xffffff);
 
   useEffect(() => {
     const initApp = async () => {
@@ -42,16 +41,14 @@ const StarEater = () => {
       const container = containerRef.current;
       container.appendChild(app.canvas);
 
-      // Загрузка фона
       Assets.add({ alias: 'background', src: '/assets/phon.png' });
-      // Загрузка четырех SVG для монет
-      Assets.add({ alias: 'coin1', src: '/assets/sun.svg' });
-      Assets.add({ alias: 'coin2', src: '/assets/jup.svg' });
-      Assets.add({ alias: 'coin3', src: '/assets/met.svg' });
-      Assets.add({ alias: 'coin4', src: '/assets/ear.svg' });
-      Assets.add({ alias: 'coin5', src: '/assets/mars.svg' });
+      Assets.add({ alias: 'coin1', src: '/assets/sun1.svg' });
+      Assets.add({ alias: 'coin2', src: '/assets/met1.svg' });
+      Assets.add({ alias: 'coin3', src: '/assets/met4.svg' });
+      Assets.add({ alias: 'coin4', src: '/assets/met2.svg' });
+      Assets.add({ alias: 'coin5', src: '/assets/met3.svg' });
+      Assets.add({ alias: 'coinSound', src: '/assets/hun.mp3' });
 
-      // Загружаем все ресурсы
       const assets = await Assets.load([
         'background',
         'coin1',
@@ -59,6 +56,7 @@ const StarEater = () => {
         'coin3',
         'coin4',
         'coin5',
+        'coinSound',
       ]);
       const background = new Sprite(assets.background);
       background.width = width;
@@ -83,14 +81,13 @@ const StarEater = () => {
       tokenTextRef.current = tokenText;
 
       const blackHoleGraphics = new Graphics();
-
       app.stage.addChild(blackHoleGraphics);
 
-      const blurFilter2 = new BlurFilter({
-        strength: 5, // Сила размытия (настраивай под эффект свечения)
-        quality: 4, // Качество размытия
+      const blurFilter = new BlurFilter({
+        strength: 3,
+        quality: 2,
       });
-      blackHoleGraphics.filters = [blurFilter2];
+      blackHoleGraphics.filters = [blurFilter];
 
       app.stage.interactive = true;
       app.stage.hitArea = app.screen;
@@ -99,7 +96,6 @@ const StarEater = () => {
         lastPosRef.current = { x, y };
       });
 
-      // Добавляем счетчик для выбора монеты
       let coinIndex = 0;
       const coinTextures = [
         assets.coin1,
@@ -113,7 +109,6 @@ const StarEater = () => {
         const blackHole = blackHoleRef.current;
         const coins = coinsRef.current;
 
-        // Плавное движение черной дыры
         const targetX = Math.max(
           blackHole.radius,
           Math.min(width - blackHole.radius, lastPosRef.current.x)
@@ -125,22 +120,18 @@ const StarEater = () => {
         blackHole.x += (targetX - blackHole.x) * 0.1;
         blackHole.y += (targetY - blackHole.y) * 0.1;
 
-        // Добавление монет по очереди
         if (coins.length < 5 && Math.random() < 0.05) {
-          const coin = new Sprite(coinTextures[coinIndex]); // Используем текущую текстуру
+          const coin = new Sprite(coinTextures[coinIndex]);
           coin.x = Math.random() * (width - 20) + 10;
           coin.y = Math.random() * (height - 20) + 10;
-          coin.anchor.set(0.5); // Центрируем монету
-          coin.width = Math.max(10, width * 0.07); // Устанавливаем размер
+          coin.anchor.set(0.5);
+          coin.width = Math.max(10, width * 0.07);
           coin.height = Math.max(10, width * 0.07);
           app.stage.addChild(coin);
           coins.push(coin);
-
-          // Переключаем индекс на следующую монету
-          coinIndex = (coinIndex + 1) % 5; // Цикл: 0 -> 1 -> 2 -> 3 -> 0
+          coinIndex = (coinIndex + 1) % 5;
         }
 
-        // Обработка столкновений и притяжения
         let tokensToAdd = 0;
         for (let i = coins.length - 1; i >= 0; i--) {
           const coin = coins[i];
@@ -148,33 +139,19 @@ const StarEater = () => {
           const dy = blackHole.y - coin.y;
           const distSquared = dx * dx + dy * dy;
 
-          if (distSquared < 15000) {
+          if (distSquared < 17000) {
             const dist = Math.sqrt(distSquared);
             coin.x += (dx / dist) * 0.5;
             coin.y += (dy / dist) * 0.5;
           }
 
           if (distSquared < blackHole.radius * blackHole.radius) {
+            sound.play('coinSound');
             app.stage.removeChild(coin);
             coins.splice(i, 1);
             tokensToAdd += 1;
             pulseTimerRef.current = 30;
             strokeColorRef.current = 0xff00ff;
-
-            // Добавляем частицы
-            for (let j = 0; j < 4; j++) {
-              const particle = new Graphics();
-              particle.x = coin.x;
-              particle.y = coin.y;
-              particle.fill('#EA9900');
-              particle.circle(0, 0, 2);
-              particle.endFill();
-              particle.vx = (Math.random() - 0.5) * 4;
-              particle.vy = (Math.random() - 0.5) * 4;
-              particle.life = 15;
-              app.stage.addChild(particle);
-              particlesRef.current.push(particle);
-            }
           }
         }
 
@@ -184,7 +161,6 @@ const StarEater = () => {
           tokenTextRef.current.text = `${tokensRef.current}`;
         }
 
-        // Обновляем эффект пульсации
         if (pulseTimerRef.current > 0) {
           pulseTimerRef.current -= 1;
           pulseScaleRef.current =
@@ -192,18 +168,6 @@ const StarEater = () => {
           if (pulseTimerRef.current === 0) {
             pulseScaleRef.current = 1;
             strokeColorRef.current = 0xffffff;
-          }
-        }
-
-        const particles = particlesRef.current;
-        for (let i = particles.length - 1; i >= 0; i--) {
-          const particle = particles[i];
-          particle.x += particle.vx;
-          particle.y += particle.vy;
-          particle.life -= 1;
-          if (particle.life <= 0) {
-            app.stage.removeChild(particle);
-            particles.splice(i, 1);
           }
         }
 
@@ -218,7 +182,6 @@ const StarEater = () => {
           )
           .endFill();
 
-        // Центральная черная область
         blackHoleGraphics
           .fill(0x000000)
           .circle(
@@ -228,9 +191,8 @@ const StarEater = () => {
           )
           .endFill();
 
-        // Обводка для усиления эффекта
         blackHoleGraphics
-          .stroke({ color: 0xff5500, width: 2, alpha: 3 })
+          .stroke({ color: 0xff884d, width: 2, alpha: 1 })
           .circle(
             blackHole.x,
             blackHole.y,
