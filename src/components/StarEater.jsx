@@ -41,7 +41,7 @@ const StarEater = () => {
       const container = containerRef.current;
       container.appendChild(app.canvas);
 
-      Assets.add({ alias: 'background', src: '/assets/phon.png' });
+      Assets.add({ alias: 'background', src: '/assets/phon2.png' });
       Assets.add({ alias: 'coin1', src: '/assets/sun1.svg' });
       Assets.add({ alias: 'coin2', src: '/assets/met1.svg' });
       Assets.add({ alias: 'coin3', src: '/assets/met4.svg' });
@@ -146,7 +146,7 @@ const StarEater = () => {
           }
 
           if (distSquared < blackHole.radius * blackHole.radius) {
-            sound.play('coinSound');
+            sound.play('coinSound', { volume: 0.5 });
             app.stage.removeChild(coin);
             coins.splice(i, 1);
             tokensToAdd += 1;
@@ -192,7 +192,7 @@ const StarEater = () => {
           .endFill();
 
         blackHoleGraphics
-          .stroke({ color: 0xff884d, width: 2, alpha: 1 })
+          .stroke({ color: 'grey', width: 2, alpha: 1 })
           .circle(
             blackHole.x,
             blackHole.y,
